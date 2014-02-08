@@ -64,6 +64,46 @@ class jrFormConsole
   }
 
   /**
+   * Shows the filled in form and ask for confirmation
+   *
+   * @param sfBaseTask $task
+   * @param sfFormSymfony $form
+   * @return bool
+   */
+  public static function confirm(sfBaseTask $task, sfFormSymfony $form)
+  {
+    $fields = $form->getFormFieldSchema();
+    $values = array();
+    $task->log(' ');
+    foreach ($fields as $name => $field) {
+      /** @var sfWidgetForm $widget */
+      $widget = $field->getWidget();
+
+      $type = self::getType($widget);
+
+      switch ($type) {
+        case self::TYPE_SELECT:
+          $choices = $widget->getOption('choices');
+          $task->log(strip_tags($field->renderLabel()).": ".$choices[$form->getValue($name)]);
+          break;
+        case self::TYPE_DEFAULT:
+        default:
+          $task->log(strip_tags($field->renderLabel()).": ".$form->getValue($name));
+          break;
+      }
+    }
+
+    $question = $task->askConfirmation('Are you sure to commit [Y]', self::COMMANDLINE_STYLE, true);
+
+    if(strtolower($question) == 'y')
+    {
+      return true;
+    }
+
+    return false;
+  }
+  
+  /**
    * Returns the type of the question
    *
    * @param sfWidgetForm $widget
