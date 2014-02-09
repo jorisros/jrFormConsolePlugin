@@ -42,7 +42,7 @@ class jrFormConsole
             $default = " [" . $form->getDefault($name) . "]";
           }
 
-          $values[$name] = $task->askAndValidate(strip_tags($field->renderLabel()) . $default . ":", $form->getValidator($name), array());
+          $values[$name] = self::askAndValidate($task, strip_tags($field->renderLabel()) . $default . ":", $form->getValidator($name), array('value'=>$form->getDefault($name)));
 
           break;
         case self::TYPE_DEFAULT:
@@ -53,7 +53,7 @@ class jrFormConsole
             $default = " [" . $form->getDefault($name) . "]";
           }
 
-          $values[$name] = $task->askAndValidate(strip_tags($field->renderLabel()) . $default . ":", $form->getValidator($name), array());
+          $values[$name]  = self::askAndValidate($task, strip_tags($field->renderLabel()) . $default . ":", $form->getValidator($name), array('value'=>$form->getDefault($name)));
 
           break;
       }
@@ -61,6 +61,95 @@ class jrFormConsole
 
     $form->bind($values);
     return $form;
+  }
+
+  /**
+   * @param $task
+   * @param $question
+   * @param sfValidatorBase $validator
+   * @param array $options
+   * @return mixed
+   * @throws Exception
+   * @throws null
+   * @throws sfValidatorError
+   */
+  private static function askAndValidate($task, $question, sfValidatorBase $validator, array $options = array())
+  {
+    if (!is_array($question))
+    {
+      $question = array($question);
+    }
+
+    $options = array_merge(array(
+      'value'    => null,
+      'attempts' => false,
+      'style'    => 'QUESTION',
+    ), $options);
+
+    // does the provided value passes the validator?
+    if ($options['value'])
+    {
+      try
+      {
+        return $validator->clean($options['value']);
+      }
+      catch (sfValidatorError $error)
+      {
+      }
+    }
+
+    // no, ask the user for a valid user
+    $error = null;
+    while (false === $options['attempts'] || $options['attempts']--)
+    {
+      if (null !== $error)
+      {
+        $task->logBlock($error->getMessage(), 'ERROR');
+      }
+
+      $value = self::ask($task, $question, $options['style'], null);
+
+      try
+      {
+        return $validator->clean($value);
+      }
+      catch (sfValidatorError $error)
+      {
+      }
+    }
+
+    throw $error;
+  }
+
+  /**
+   * Asks a question to the user.
+   *
+   * @param string|array $question The question to ask
+   * @param string       $style    The style to use (QUESTION by default)
+   * @param string       $default  The default answer if none is given by the user
+   *
+   * @param string       The user answer
+   */
+  private static function ask($task, $question, $style = 'QUESTION', $default = null)
+  {
+    if (false === $style)
+    {
+      $task->log($question);
+    }
+    else
+    {
+      $task->logBlock($question, null === $style ? 'QUESTION' : $style);
+    }
+
+    $ret = fgets(STDIN);
+    if($ret == PHP_EOL)
+    {
+      return $default;
+    }
+
+    $ret = str_replace(PHP_EOL, '', $ret);
+
+    return $ret;
   }
 
   /**
@@ -102,7 +191,7 @@ class jrFormConsole
 
     return false;
   }
-  
+
   /**
    * Returns the type of the question
    *
