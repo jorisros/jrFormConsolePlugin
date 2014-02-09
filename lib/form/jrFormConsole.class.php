@@ -86,17 +86,6 @@ class jrFormConsole
       'style'    => 'QUESTION',
     ), $options);
 
-    // does the provided value passes the validator?
-    if ($options['value'])
-    {
-      try
-      {
-        return $validator->clean($options['value']);
-      }
-      catch (sfValidatorError $error)
-      {
-      }
-    }
 
     // no, ask the user for a valid user
     $error = null;
@@ -107,7 +96,7 @@ class jrFormConsole
         $task->logBlock($error->getMessage(), 'ERROR');
       }
 
-      $value = self::ask($task, $question, $options['style'], null);
+      $value = self::ask($task, $question, $options['style'], $options['value']);
 
       try
       {
